@@ -6,6 +6,7 @@ import {Route, Routes } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import Home from './pages/Home';
+import User from './pages/User';
 import ExcerciseDetail from './pages/ExcersiceDetail';
 import BmiCalculator from './pages/BmiCalculator';
 
@@ -17,6 +18,7 @@ const App = () => {
           <Route path="/" element={<Home />} />
           <Route path="/exercise/:id" element={<ExcerciseDetail />} />
           <Route path="/BmiCalculator" element={<BmiCalculator />} />
+          <Route path="/User" element={<User />} />
       </Routes>
       <Footer />
     </Box>
