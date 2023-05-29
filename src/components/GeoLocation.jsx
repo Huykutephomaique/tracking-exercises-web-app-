@@ -9,6 +9,8 @@ class GeoLocation extends React.Component {
     this.previousLocation = null;
     this.tripMeter = 0;
     this.intervalId = null;
+    this.isLocationEnabled = false;
+    this.calorieBurnRate = 0.05;
   }
 
   componentDidMount() {
@@ -20,16 +22,26 @@ class GeoLocation extends React.Component {
   }
 
   startLocationUpdates = () => {
-    this.intervalId = setInterval(() => {
-      this.geoFindMe();
-    }, 30000); // Cập nhật mỗi 30 giây
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: 'geolocation' }).then((permission) => {
+        if (permission.state === 'granted') {
+          this.isLocationEnabled = true;
+          this.getCurrentLocation();
+          this.intervalId = setInterval(this.getCurrentLocation, 10000); // Cập nhật mỗi 10 giây
+        }
+      });
+    } else if (navigator.geolocation) {
+      this.isLocationEnabled = true;
+      this.getCurrentLocation();
+      this.intervalId = setInterval(this.getCurrentLocation, 10000); // Cập nhật mỗi 10 giây
+    }
   };
 
   stopLocationUpdates = () => {
     clearInterval(this.intervalId);
   };
 
-  geoFindMe = () => {
+  getCurrentLocation = () => {
     const status = this.statusRef.current;
     const mapLink = this.mapLinkRef.current;
 
@@ -42,11 +54,11 @@ class GeoLocation extends React.Component {
 
       status.textContent = '';
       mapLink.href = `https://www.openstreetmap.org/#map=18/${latitude}/${longitude}`;
-      mapLink.textContent = `Latitude: ${latitude} °, Longitude: ${longitude} °`;
-      mapLink.style.fontSize ='24px';
+      mapLink.textContent = `Latitude: ${latitude}°, Longitude: ${longitude}°`;
+      mapLink.style.fontSize = '24px';
       mapLink.style.textAlign = 'center';
-      mapLink.style.marginLeft='500px'
-      mapLink.style.marginTop='500px'
+      mapLink.style.marginLeft = '500px';
+      mapLink.style.marginTop = '500px';
       mapLink.style.color = '#ffffff';
 
       if (this.previousLocation) {
@@ -54,20 +66,22 @@ class GeoLocation extends React.Component {
         this.tripMeter += distance;
         console.log('Distance:', distance);
         console.log('Trip Meter:', this.tripMeter);
+        this.forceUpdate();
       }
 
-      this.previousLocation = { latitude, longitude };
+      this.previousLocation = position.coords;
+
     };
 
     const error = () => {
       status.textContent = 'Unable to retrieve your location';
     };
 
-    if (!navigator.geolocation) {
-      status.textContent = 'Geolocation is not supported by your browser';
-    } else {
+    if (this.isLocationEnabled) {
       status.textContent = 'Locating…';
       navigator.geolocation.getCurrentPosition(success, error);
+    } else {
+      status.textContent = 'Location access denied';
     }
   };
 
@@ -91,26 +105,41 @@ class GeoLocation extends React.Component {
 
     return distance;
   };
+  calculateCalories = (distance, time) => {
+    const calories = distance * this.calorieBurnRate;
+    return calories;
+  };
 
   render() {
     return (
       <div>
-        <p ref={this.statusRef} style={{
+        <p
+          ref={this.statusRef}
+          style={{
             fontSize: '24px',
             textAlign: 'center',
             color: '#ffffff',
-          }}></p>
+          }}
+        ></p>
         <a ref={this.mapLinkRef} target="_blank" rel="noopener noreferrer"></a>
         <div style={{ display: 'flex', justifyContent: 'center' }}>
-          <button onClick={this.geoFindMe} style={{ marginTop: '20px' }}>Find Me</button>
-        </div> 
+          <button onClick={this.getCurrentLocation} style={{ marginTop: '20px' }}>
+            Find Me
+          </button>
+        </div>
         {this.tripMeter >= 0 && (
-          <p style={{
+          <p
+            style={{
               fontSize: '24px',
               textAlign: 'center',
               color: '#ffffff',
               marginTop: '20px',
-            }}>Distance Traveled: {this.tripMeter.toFixed(2)} meters</p>
+            }}
+          >
+            Distance Traveled: {this.tripMeter.toFixed(2)} meters
+            <br />
+            Calories Burned: {this.calculateCalories(this.tripMeter, this.intervalId).toFixed(2)} kcal
+          </p>
         )}
       </div>
     );
